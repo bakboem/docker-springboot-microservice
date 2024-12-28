@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s  # 抓取间隔时间
+
+scrape_configs:
+  - job_name: prometheus
+    metrics_path: /metrics
+    static_configs:
+      - targets: [localhost:9090]  
+
+  - job_name: influx
+    metrics_path: /metrics
+    static_configs:
+      - targets: [influx:8086]
+
+
+ 
