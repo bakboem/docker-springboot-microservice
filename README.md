@@ -82,17 +82,22 @@ Each service is configured with health checks to ensure proper operation. For ex
 ### Steps
 
 1. Clone the repository.
-2. Run the infrastructure setup:
+   ```bash
+   clone https://github.com/bakboem/docker-springboot-microservice.git
+   cd docker-springboot-microservice
+   ```
+2. Grant permissions to script files
+   ```bash
+   chmod +x start.sh stop.sh build-image.sh  \
+   extract-ngrok-ip.sh init-java-stack-services.sh create-jwt-token-keypair.sh
+   ```
+3. Build docker images:
+   ```bash
+   ./build-image.sh
+   ```
+4. Start projects with docker compose :
    ```bash
    ./start.sh
-   ```
-3. Ensure ngrok is properly configured to map local ports. The script `extract-ngrok-ip.sh` ensures dynamic updates to the environment variables for Kafka:
-   ```bash
-   ./extract-ngrok-ip.sh
-   ```
-4. Use Docker Compose to bring up the services:
-   ```bash
-   docker-compose -f docker-compose-dev.yml up
    ```
 
 
