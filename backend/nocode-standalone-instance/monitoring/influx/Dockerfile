@@ -1,6 +1,7 @@
 FROM influxdb:2.7-alpine
 # Copy the entrypoint script
 COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x entrypoint.sh
 ENV TZ=UTC
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Install netcat using apk
