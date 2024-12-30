@@ -40,8 +40,6 @@ find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; 
   else
     echo "Directory .gradle does not exist in $subdir. Executing create-project.sh and build-jar.sh"
     (cd "$subdir" && bash "./create-project.sh") || { echo "Error: Failed to execute create-project.sh in $subdir"; exit 1; }
-    (cd "$subdir" && bash "./build-jar.sh") || { echo "Error: Failed to execute build-jar.sh in $subdir"; exit 1; }
-  fi
 done
 
 echo "All operations completed successfully."
