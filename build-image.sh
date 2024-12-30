@@ -1,11 +1,20 @@
 #!/bin/bash
 
+# 如果备份文件存在，恢复备份文件
+if [ -f ./docker-compose-dev.yml.bak ]; then
+  echo "恢复备份文件 docker-compose-dev.yml.bak 到 docker-compose-dev.yml"
+  cp ./docker-compose-dev.yml.bak ./docker-compose-dev.yml
+else
+  echo "未找到备份文件 docker-compose-dev.yml.bak,继续执行。"
+fi
+
+
 # 运行 docker-compose build
-# docker-compose -f ./docker-compose-dev.yml --profile standalone build
-# if [ $? -ne 0 ]; then
-#   echo "构建过程中出现错误，退出脚本。"
-#   exit 1
-# fi
+docker-compose -f ./docker-compose-dev.yml --profile standalone build
+if [ $? -ne 0 ]; then
+  echo "构建过程中出现错误，退出脚本。"
+  exit 1
+fi
 
 # 备份原始文件
 cp ./docker-compose-dev.yml ./docker-compose-dev.yml.bak

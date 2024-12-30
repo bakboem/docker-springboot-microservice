@@ -1,21 +1,13 @@
-# 使用官方 Kafka 镜像
+# 基于官方 Bitnami Kafka 镜像
 FROM bitnami/kafka:latest
 
-# 设置时区
-ENV TZ=UTC
-
-# 切换到 root 用户以执行权限操作
+# 临时切换到 root 用户
 USER root
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 切换回默认的 kafka 用户
-USER kafka
-
-# 设置工作目录
-WORKDIR /kafka
-
+# 安装 netcat-openbsd
+RUN apt-get update && apt-get install -y netcat-openbsd && apt-get clean
+# 切换回默认用户（通常为 1001）
+USER 1001
 # 暴露 Kafka 默认端口
-EXPOSE 9092
+EXPOSE 9092 9093
 
-# 启动 Kafka 服务
-CMD ["/opt/bitnami/scripts/kafka/entrypoint.sh"]

@@ -2,8 +2,9 @@
 version: '3.9'
 services:
   maindb:
-    build:
-      context: ./backend/nocode-standalone-instance/db/main-db
+#     build:
+#       context: ./backend/nocode-standalone-instance/db/main-db
+    image: ecm-maindb
     container_name: ecm-maindb
     profiles:
       - standalone
@@ -21,8 +22,9 @@ services:
     restart: always
 
   redis:
-    build:
-     context: ./backend/nocode-standalone-instance/db/redis
+#     build:
+#      context: ./backend/nocode-standalone-instance/db/redis
+    image: ecm-redis
     container_name: ecm-redis
     profiles:
       - standalone
@@ -40,9 +42,11 @@ services:
       start_period: 30s  
     restart: always
 
+
   kafka:
-    build:
-      context: ./backend/nocode-standalone-instance/kafka
+#     build: 
+#       context: ./backend/nocode-standalone-instance/kafka
+    image: ecm-kafka
     container_name: ecm-kafka
     profiles:
       - standalone
@@ -50,19 +54,22 @@ services:
       - ./backend/nocode-standalone-instance/kafka/.env
     ports:
       - "9092:9092"
+      - "9093:9093"
     volumes:
-      - ecm-kafka-data-dev:/??
+      - ecm-kafka-data-dev:/var/lib/kafka/data
     healthcheck:
-      test: []
+      test: ["CMD", "bash", "-c", "echo -n | nc -z 0.0.0.0 9092"]
       interval: 10s
       timeout: 10s
-      retries: 3
-      start_period: 30s  
+      retries: 5
+      start_period: 20s
     restart: always
 
+
   grafana:
-    build:
-      context: ./backend/nocode-standalone-instance/monitoring/grafana/
+#     build:
+#       context: ./backend/nocode-standalone-instance/monitoring/grafana/
+    image: ecm-grafana
     container_name: ecm-grafana
     profiles:
       - standalone
@@ -81,8 +88,9 @@ services:
       retries: 3
 
   influx:
-    build:
-      context: ./backend/nocode-standalone-instance/monitoring/influx
+#     build:
+#       context: ./backend/nocode-standalone-instance/monitoring/influx
+    image: ecm-influx
     container_name: ecm-influx
     profiles:
       - standalone
@@ -103,8 +111,9 @@ services:
 
 
   prometheus:
-    build:
-      context: ./backend/nocode-standalone-instance/monitoring/prometheus
+#     build:
+#       context: ./backend/nocode-standalone-instance/monitoring/prometheus
+    image: ecm-prometheus
     container_name: ecm-prometheus
     profiles:
       - standalone
@@ -121,8 +130,9 @@ services:
       retries: 3
 
   log:
-    build:
-      context: ./backend/nocode-standalone-instance/log
+#     build:
+#       context: ./backend/nocode-standalone-instance/log
+    image: ecm-log
     container_name: ecm-log
     profiles:
       - standalone
