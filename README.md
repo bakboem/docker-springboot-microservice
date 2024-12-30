@@ -50,8 +50,7 @@ All services are containerized using Docker, making it easy to manage, scale, an
 ### Deployment and Automation
 
 - Automated deployment scripts for each service.
-- Build and run each module in stages through docker profiles
-- The overall structure is divided into two parts: ***java-stack-microservice*** and   ***nocode-standalone-instance***.
+- Build and run each module in stages through docker profiles. ***java-stack-microservice*** and   ***nocode-standalone-instance***.
 - `docker-compose` files for development and production environments:
   - **docker-compose-dev.yml**: For local development.
   - **docker-compose-prod.yml**: For production setups.
