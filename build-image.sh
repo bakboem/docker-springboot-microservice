@@ -1,5 +1,10 @@
 #!/bin/bash
-
+if ./init-java-stack-services.sh; then
+  echo "init-java-stack-services.sh executed successfully."
+else
+  echo "Error: init-java-stack-services.sh did not complete successfully."
+  exit 1
+fi
 
 # 如果备份文件存在，恢复备份文件
 if [ -f ./docker-compose-dev.yml.bak ]; then

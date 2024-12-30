@@ -145,7 +145,8 @@ services:
 
 #######  JAVA Stack ########
   eureka:
-    image: ecm-spring-eureka
+    build:
+      context: ./backend/java-stack-microservice/spring-eureka
     container_name: ecm-eureka
     profiles:
       - java-microservices
@@ -161,25 +162,6 @@ services:
       retries: 5
     restart: always
   
-
-  user-service:
-    image: ecm-user-service
-    container_name: ecm-user-service
-    profiles:
-      - java-microservices
-    environment:
-      - EUREKA_CLIENT_SERVICE_URL=http://eureka:8761/eureka/
-      - JAVA_OPTS=-Xms256m -Xmx512m
-    depends_on:
-      eureka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: always
-
 
 volumes:
   ecm-main-db-data-dev:

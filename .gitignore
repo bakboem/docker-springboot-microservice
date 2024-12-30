@@ -1,0 +1,62 @@
+# 编译输出目录
+/build/
+*/build/
+out/
+*/out/
+target/
+*/target/
+
+# IDE 配置文件
+.idea/
+*.iml
+*.iws
+.classpath
+.project
+.settings/
+.vscode/
+
+# 操作系统和工具相关文件
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# Gradle 缓存和生成文件
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+
+# Maven 缓存和生成文件
+.mvn/
+!mvn/wrapper/maven-wrapper.jar
+
+# Java 和 Spring 相关文件
+*.class
+*.jar
+*.war
+*.ear
+*.javadoc
+
+# 临时文件
+*.swp
+*.swo
+*.~*
+*.bak
+*.orig
+*.rej
+
+# 测试报告
+/test-output/
+*.ser
+*.exec
+
+# 环境文件
+.env
+*.env
+
+# JRebel 和其他工具相关文件
+*.rebel
+.rebel.xml
+
+# 本地配置
+/local.properties
