@@ -2,9 +2,8 @@
 version: '3.9'
 services:
   maindb:
-#     build:
-#       context: ./backend/nocode-standalone-instance/db/main-db
-    image: ecm-maindb
+    build:
+      context: ./backend/nocode-standalone-instance/db/main-db
     container_name: ecm-maindb
     profiles:
       - standalone
@@ -22,9 +21,8 @@ services:
     restart: always
 
   redis:
-#     build:
-#      context: ./backend/nocode-standalone-instance/db/redis
-    image: ecm-redis
+    build:
+     context: ./backend/nocode-standalone-instance/db/redis
     container_name: ecm-redis
     profiles:
       - standalone
@@ -44,9 +42,8 @@ services:
 
 
   kafka:
-#     build: 
-#       context: ./backend/nocode-standalone-instance/kafka
-    image: ecm-kafka
+    build: 
+      context: ./backend/nocode-standalone-instance/kafka
     container_name: ecm-kafka
     profiles:
       - standalone
@@ -67,9 +64,8 @@ services:
 
 
   grafana:
-#     build:
-#       context: ./backend/nocode-standalone-instance/monitoring/grafana/
-    image: ecm-grafana
+    build:
+      context: ./backend/nocode-standalone-instance/monitoring/grafana/
     container_name: ecm-grafana
     profiles:
       - standalone
@@ -88,9 +84,8 @@ services:
       retries: 3
 
   influx:
-#     build:
-#       context: ./backend/nocode-standalone-instance/monitoring/influx
-    image: ecm-influx
+    build:
+      context: ./backend/nocode-standalone-instance/monitoring/influx
     container_name: ecm-influx
     profiles:
       - standalone
@@ -111,9 +106,8 @@ services:
 
 
   prometheus:
-#     build:
-#       context: ./backend/nocode-standalone-instance/monitoring/prometheus
-    image: ecm-prometheus
+    build:
+      context: ./backend/nocode-standalone-instance/monitoring/prometheus
     container_name: ecm-prometheus
     profiles:
       - standalone
@@ -130,9 +124,8 @@ services:
       retries: 3
 
   log:
-#     build:
-#       context: ./backend/nocode-standalone-instance/log
-    image: ecm-log
+    build:
+      context: ./backend/nocode-standalone-instance/log
     container_name: ecm-log
     profiles:
       - standalone
@@ -153,7 +146,6 @@ services:
 #######  JAVA Stack ########
   eureka:
     image: ecm-spring-eureka
-    image: ecm-eureka
     container_name: ecm-eureka
     profiles:
       - java-microservices
@@ -171,7 +163,6 @@ services:
   
 
   user-service:
-    image: ecm-user-service
     image: ecm-user-service
     container_name: ecm-user-service
     profiles:
