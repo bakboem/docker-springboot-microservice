@@ -71,7 +71,7 @@ Each service is configured with health checks to ensure proper operation. For ex
 - Kafka: Verifies port 9092 availability using `netcat`.
 - Other services: Periodic health probes to ensure responsiveness.
 
-## Scripts
+### Scripts
 
 1. **start.sh**: Starts all services.
 2. **stop.sh**: Stops all services.
@@ -79,7 +79,7 @@ Each service is configured with health checks to ensure proper operation. For ex
 4. **build-image.sh**: Builds Docker images for services.
 5. **init-java-stack-services.sh**: Generate Java basic code using SpringBoot CLI & Build docker image with jar package
 
-### Steps
+### How to Run 
 
 1. Clone the repository.
    ```bash
