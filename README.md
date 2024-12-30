@@ -63,6 +63,22 @@ All services are containerized using Docker, making it easy to manage, scale, an
 - Ngrok installed locally.
 - Required ports (e.g., 80, 9092) available on the host machine.
 
+
+### Health Checks
+
+Each service is configured with health checks to ensure proper operation. For example:
+
+- Kafka: Verifies port 9092 availability using `netcat`.
+- Other services: Periodic health probes to ensure responsiveness.
+
+## Scripts
+
+1. **start.sh**: Starts all services.
+2. **stop.sh**: Stops all services.
+3. **extract-ngrok-ip.sh**: Dynamically updates environment variables for ngrok.
+4. **build-image.sh**: Builds Docker images for services.
+5. **init-java-stack-services.sh**: Generate Java basic code using SpringBoot CLI & build Docker image with Jar File
+
 ### Steps
 
 1. Clone the repository.
@@ -79,27 +95,6 @@ All services are containerized using Docker, making it easy to manage, scale, an
    docker-compose -f docker-compose-dev.yml up
    ```
 
-### Health Checks
-
-Each service is configured with health checks to ensure proper operation. For example:
-
-- Kafka: Verifies port 9092 availability using `netcat`.
-- Other services: Periodic health probes to ensure responsiveness.
-
-## Key Notes
-
-- Kafka’s `advertised.listeners` is dynamically updated to use the ngrok public URL to allow external access.
-- The project is designed with scalability in mind. For example:
-  - Redis and databases can scale horizontally.
-  - Kafka and log services support distributed setups.
-- Monitoring tools (Grafana and Prometheus) are pre-configured for visualizing service metrics.
-
-## Scripts
-
-1. **start.sh**: Starts all services.
-2. **stop.sh**: Stops all services.
-3. **extract-ngrok-ip.sh**: Dynamically updates environment variables for ngrok.
-4. **build-image.sh**: Builds Docker images for services.
 
 ## Future Plans
 
