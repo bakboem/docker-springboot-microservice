@@ -16,7 +16,8 @@ fi
 
 
 # 运行 docker-compose build
-docker-compose -f ./docker-compose-dev.yml --profile standalone build
+# docker-compose -f ./docker-compose-dev.yml --profile standalone --profile java-microservices build
+docker-compose -f ./docker-compose-dev.yml --profile java-microservices build
 if [ $? -ne 0 ]; then
   echo "构建过程中出现错误，退出脚本。"
   exit 1

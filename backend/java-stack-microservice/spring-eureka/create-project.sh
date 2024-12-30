@@ -47,28 +47,47 @@ CONFIG_DIR="src/main/resources"
 PROPERTIES_FILE="$CONFIG_DIR/application.properties"
 YAML_FILE="$CONFIG_DIR/application.yml"
 
+# 获取 ngrok 本地地址
+NGROK_API="http://127.0.0.1:4040/api/tunnels"
+NGROK_URL=$(curl -s "$NGROK_API" | jq -r '.tunnels[0].public_url')
+
 # 检查并删除 application.properties 文件
 if [ -f "$PROPERTIES_FILE" ]; then
   echo "Found $PROPERTIES_FILE. Deleting it."
   rm -f "$PROPERTIES_FILE"
 fi
 
+if [ -z "$NGROK_URL" ] || [ "$NGROK_URL" == "null" ]; then
+  echo "Error: Unable to fetch ngrok URL. Make sure ngrok is running."
+  exit 1
+fi
+
+# 打印获取到的 ngrok 地址
+echo "Using ngrok URL: $NGROK_URL"
+
 # 创建 application.yml 文件并写入配置
 echo "Creating $YAML_FILE with the required configuration."
 mkdir -p "$CONFIG_DIR"  # 确保目录存在
 cat > "$YAML_FILE" <<EOF
+spring:
+  application:
+    name: eureka-server
 server:
   port: 8761  # 设置 Eureka Server 监听的端口
 
 eureka:
+  instance:
+    hostname: $NGROK_URL  # 动态设置 ngrok 外网地址
   client:
+    service-url:
+      defaultZone: $NGROK_URL/eureka/  # 动态设置 Eureka 注册表地址
     register-with-eureka: false  # 不向自己或其他 Eureka Server 注册
     fetch-registry: false        # 不从其他 Eureka Server 拉取注册表
   server:
     enable-self-preservation: false  # 禁用自我保护模式（开发环境可禁用，生产建议保留）
 EOF
 
-echo "$YAML_FILE created successfully."
+echo "$YAML_FILE created successfully with ngrok URL: $NGROK_URL"
 
 # Build the project to generate JAR file
 echo "Running ./gradlew clean build..."
