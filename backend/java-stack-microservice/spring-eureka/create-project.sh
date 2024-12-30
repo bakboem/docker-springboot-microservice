@@ -1,6 +1,5 @@
 #!/bin/bash
-
-
+set -e 
 
 # Set variables for project generation
 GROUP_ID="com.codera"
@@ -9,7 +8,7 @@ NAME="eureka"
 DESCRIPTION="Eureka For Service Discovery System"
 PACKAGE_NAME="com.codera.eureka"
 BOOT_VERSION="3.4.1"
-DEPENDENCIES="cloud-eureka,actuator,security"
+DEPENDENCIES="cloud-eureka,actuator,security,web"
 
 
 
@@ -37,11 +36,6 @@ curl "https://start.spring.io/starter.tgz" \
 # Extract the project
 tar -xzf ${ARTIFACT_ID}.tgz
 
-# Change directory to the project folder
-cd ${ARTIFACT_ID}
-
-
-
 # 定义目标配置文件路径
 CONFIG_DIR="src/main/resources"
 PROPERTIES_FILE="$CONFIG_DIR/application.properties"
@@ -57,18 +51,11 @@ if [ -f "$PROPERTIES_FILE" ]; then
   rm -f "$PROPERTIES_FILE"
 fi
 
-if [ -z "$NGROK_URL" ] || [ "$NGROK_URL" == "null" ]; then
-  echo "Error: Unable to fetch ngrok URL. Make sure ngrok is running."
-  exit 1
-fi
-
-# 打印获取到的 ngrok 地址
-echo "Using ngrok URL: $NGROK_URL"
-
 # 创建 application.yml 文件并写入配置
 echo "Creating $YAML_FILE with the required configuration."
 mkdir -p "$CONFIG_DIR"  # 确保目录存在
 cat > "$YAML_FILE" <<EOF
+
 spring:
   application:
     name: eureka-server
@@ -76,25 +63,17 @@ server:
   port: 8761  # 设置 Eureka Server 监听的端口
 
 eureka:
-  instance:
-    hostname: $NGROK_URL  # 动态设置 ngrok 外网地址
   client:
-    service-url:
-      defaultZone: $NGROK_URL/eureka/  # 动态设置 Eureka 注册表地址
+    enabled: false
     register-with-eureka: false  # 不向自己或其他 Eureka Server 注册
     fetch-registry: false        # 不从其他 Eureka Server 拉取注册表
   server:
     enable-self-preservation: false  # 禁用自我保护模式（开发环境可禁用，生产建议保留）
 EOF
 
-echo "$YAML_FILE created successfully with ngrok URL: $NGROK_URL"
+echo "$YAML_FILE created successfully."
 
 # Build the project to generate JAR file
 echo "Running ./gradlew clean build..."
-if ./gradlew clean build; then
-  echo "Build completed successfully."
-else
-  echo "Error: Build failed."
-  exit 1
-fi
-
+./gradlew clean build;
+# ./gradlew bootRun

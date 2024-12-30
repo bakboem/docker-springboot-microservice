@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e 
 # 设置主路径
 export JAVA_STACK_PATH="./backend/java-stack-microservice"
 

@@ -1,4 +1,7 @@
 #!/bin/bash
+set -e 
+
+# 停止本地 运行中的 ngrok
 killall ngrok
 
 # 检查 ngrok 是否正在监听端口 80

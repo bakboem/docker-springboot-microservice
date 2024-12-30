@@ -1,6 +1,6 @@
-ARTIFACT_ID="eureka"
+#!/bin/bash
+set -e 
 # Change directory to the project folder
-cd ${ARTIFACT_ID}
 # Build the project to generate JAR file
 if ./gradlew clean build; then
   echo "Build completed successfully."

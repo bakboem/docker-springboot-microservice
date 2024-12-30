@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e 
 if ./init-java-stack-services.sh; then
   echo "init-java-stack-services.sh executed successfully."
 else
@@ -13,7 +14,6 @@ if [ -f ./docker-compose-dev.yml.bak ]; then
 else
   echo "未找到备份文件 docker-compose-dev.yml.bak,继续执行。"
 fi
-
 
 # 运行 docker-compose build
 # docker-compose -f ./docker-compose-dev.yml --profile standalone --profile java-microservices build
