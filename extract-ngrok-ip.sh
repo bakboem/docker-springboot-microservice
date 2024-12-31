@@ -1,5 +1,3 @@
-#!/bin/bash
-set -e 
 
 # 停止本地 运行中的 ngrok
 killall ngrok

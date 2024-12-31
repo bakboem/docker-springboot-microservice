@@ -1,4 +1,4 @@
-./extract-ngrok-ip.sh
+./build-image.sh
 ./create-jwt-token-keypair.sh
 
 # Start all profile

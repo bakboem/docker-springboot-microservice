@@ -69,9 +69,8 @@ All services are containerized using Docker, making it easy to manage, scale, an
 
 1. **start.sh**: Starts all services.
 2. **stop.sh**: Stops all services.
-3. **extract-ngrok-ip.sh**: Dynamically updates environment variables for ngrok.
-4. **build-image.sh**: Builds Docker images for services.
-5. **init-java-stack-services.sh**: Generate Java basic code using SpringBoot CLI & Build docker image with jar package
+3. **build-image.sh**: Builds Docker images for services.
+4. **init-java-stack-services.sh**: Generate Java basic code using SpringBoot CLI & Build docker image with jar package
 
 ### Step
 
@@ -82,8 +81,7 @@ All services are containerized using Docker, making it easy to manage, scale, an
    ```
 2. Grant permissions to script files
    ```bash
-   chmod +x start.sh stop.sh build-image.sh  \
-   extract-ngrok-ip.sh init-java-stack-services.sh create-jwt-token-keypair.sh
+   chmod +x start.sh stop.sh build-image.sh
    ```
 3. Build docker images:
    ```bash

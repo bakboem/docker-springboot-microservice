@@ -12,10 +12,10 @@ eureka:
   client:
     service-url:
       # CHANGE
-      defaultZone: http://admin:admin@eureka:8761/eureka/ 
+      defaultZone: https://8f10-61-82-161-233.ngrok-free.app:8761/eureka/ 
     enabled: true
     register-with-eureka: true  
-    fetch-registry: false      
+    fetch-registry: false
 management:
   endpoints:
     web:

@@ -9,5 +9,4 @@ SERVER_PORT: 8761
 DEPENDENCIES:
   - cloud-eureka
   - actuator
-  - security
   - web
