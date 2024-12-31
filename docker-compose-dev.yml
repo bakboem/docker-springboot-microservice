@@ -160,16 +160,35 @@ services:
       - java-microservices
     ports:
       - "8761:8761"
-    environment:
-      - EUREKA_SERVER_PORT=8761
-      - JAVA_OPTS=-Xms256m -Xmx512m
+    env_file:
+      - ./backend/java-stack-microservice/spring-eureka/.env
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8761 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     restart: always
-  
+
+  config:
+#     build:
+#       context: ./backend/java-stack-microservice/spring-cloud-config
+    image: ecm-config
+    container_name: ecm-config
+    profiles:
+      - java-microservices
+    ports:
+      - "8888:8888"
+    env_file:
+      - ./backend/java-stack-microservice/spring-cloud-config/.env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8888 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: always
+    depends_on: [eureka]
 
 volumes:
   ecm-main-db-data-dev:

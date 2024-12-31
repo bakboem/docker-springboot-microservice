@@ -9,7 +9,5 @@ COPY config-server/build/libs/config-server-*-SNAPSHOT.jar /app/config-server.ja
 
 # Expose default Eureka port
 EXPOSE 8888 
-EXPOSE 8761
-
 # Run the Eureka Server
-ENTRYPOINT ["java", "-jar", "/app/eureka.jar"]
+ENTRYPOINT ["java", "-jar", "/app/config-server.jar"]
