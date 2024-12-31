@@ -5,9 +5,10 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Copy Eureka Server JAR file to the image
-COPY eureka/build/libs/eureka-*-SNAPSHOT.jar /app/eureka.jar
+COPY config-server/build/libs/config-server-*-SNAPSHOT.jar /app/config-server.jar
 
 # Expose default Eureka port
+EXPOSE 8888 
 EXPOSE 8761
 
 # Run the Eureka Server
