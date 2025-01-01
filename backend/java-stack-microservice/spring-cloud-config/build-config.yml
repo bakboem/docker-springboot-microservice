@@ -5,10 +5,11 @@ NAME: config-server
 DESCRIPTION: Eureka For Service Discovery System
 PACKAGE_NAME: com.codera.config
 BOOT_VERSION: 3.4.1
+ADD_ANOTATION: EnableEurekaClient
+ADD_IMPORT: import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 SERVER_PORT: 8888
 DEPENDENCIES:
-  - cloud-config-server
-  - cloud-config-client
   - cloud-eureka
+  - cloud-config-server
   - actuator
   - web

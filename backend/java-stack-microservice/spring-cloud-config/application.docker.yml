@@ -14,7 +14,7 @@ eureka:
   client:
     service-url:
       # CHANGE
-      defaultZone: $docker-service-name:8761/eureka/ 
+      defaultZone: http://eureka:8761/eureka/ 
     enabled: true
     register-with-eureka: true
     fetch-registry: false     

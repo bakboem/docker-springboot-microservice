@@ -44,7 +44,28 @@ fi
 }
 
 # Function to build and prepare the local Eureka server
+# Function to build and prepare the local Eureka server dynamically
 build_local_eureka() {
+  # 检查 build-config.yml 是否存在
+  local config_file="$EUREKA_DIR/build-config.yml"
+  if [ ! -f "$config_file" ]; then
+    echo "Skipping Eureka setup: Missing build-config.yml"
+    return
+  fi
+
+  # 使用 yq 提取参数
+  local GROUP_ID=$(yq '.GROUP_ID' "$config_file")
+  local ARTIFACT_ID=$(yq '.ARTIFACT_ID' "$config_file")
+  local NAME=$(yq '.NAME' "$config_file")
+  local DESCRIPTION=$(yq '.DESCRIPTION' "$config_file")
+  local BOOT_VERSION=$(yq '.BOOT_VERSION' "$config_file")
+  local ADD_ANOTATION=$(yq '.ADD_ANOTATION' "$config_file")
+  local ADD_IMPORT=$(yq '.ADD_IMPORT' "$config_file")
+  local DEPENDENCIES=$(yq -r '.DEPENDENCIES[]' "$config_file" | paste -sd "," -)
+
+  echo "Extracted dependencies: $DEPENDENCIES"
+
+  # 如果目标目录不存在，则生成项目
   if [ ! -d "$EUREKA_ARTIFACT_DIR" ]; then
     echo "Eureka directory not found. Generating project..."
     mkdir -p "$EUREKA_ARTIFACT_DIR"
@@ -52,42 +73,101 @@ build_local_eureka() {
     curl "https://start.spring.io/starter.tgz" \
       -d type=gradle-project \
       -d language=java \
-      -d bootVersion=3.4.1 \
-      -d groupId=com.example \
-      -d artifactId=eureka-server \
-      -d name=EurekaServer \
-      -d description="Eureka Server for Service Discovery" \
-      -d dependencies=cloud-eureka-server \
+      -d bootVersion="$BOOT_VERSION" \
+      -d groupId="$GROUP_ID" \
+      -d artifactId="$ARTIFACT_ID" \
+      -d name="$NAME" \
+      -d description="$DESCRIPTION" \
+      -d dependencies=$DEPENDENCIES \
       --output "$EUREKA_DIR/eureka-server.tgz"
 
     tar -xzf "$EUREKA_DIR/eureka-server.tgz" -C "$EUREKA_ARTIFACT_DIR"
     rm "$EUREKA_DIR/eureka-server.tgz"
-    # copy
+
     local config_dir="$EUREKA_ARTIFACT_DIR/src/main/resources"
     local yaml_source="$EUREKA_DIR/application.yml"
     local properties_file="$config_dir/application.properties"
     cp "$yaml_source" "$config_dir/application.yml"
-
-    if [ -f "$properties_file" ];then
-      rm -rf "$properties_file"
-      echo "Delete $properties_file. Done"
+    sed -i.bak "s|\$docker-service-name|http://localhost|g" "$config_dir/application.yml"
+      rm "$config_dir/application.yml.bak"
+    
+    # 生成 Docker 用的 application.docker.yml
+    local docker_config="$EUREKA_DIR/application.docker.yml"
+    cp "$yaml_source" "$docker_config"
+    # 替换 $docker-service-name 为 docker-compose 中 eureka 服务名称
+    if grep -q "\$docker-service-name" "$docker_config"; then
+      echo "Replacing \$docker-service-name with http://eureka in application.docker.yml"
+      sed -i.bak "s|\$docker-service-name|http://eureka|g" "$docker_config"
+      rm "$docker_config.bak"
     fi
+
+    # 如果是 Eureka Server 项目，设置 hostname 为 eureka
+    if grep -q "hostname: localhost" "$docker_config"; then
+      echo "Updating hostname to eureka in application.docker.yml"
+      sed -i.bak "s|hostname: localhost|hostname: eureka|g" "$docker_config"
+      rm "$docker_config.bak"
+    fi
+
+    if [ -f "$properties_file" ]; then
+      rm -rf "$properties_file"
+      echo "Deleted $properties_file"
+    fi
+  fi
+
+  # 检查是否需要添加 @EnableEurekaServer
+  local eureka_application_file="$EUREKA_ARTIFACT_DIR/src/main/java/com/codera/eureka/EurekaServerApplication.java"
+
+  if [ -f "$eureka_application_file" ]; then
+    echo "Checking $eureka_application_file for @EnableEurekaServer..."
+    
+    # 如果 @EnableEurekaServer 不存在，则添加
+    if ! grep -q "@EnableEurekaServer" "$eureka_application_file"; then
+      echo "@EnableEurekaServer not found. Adding annotation and import..."
+      
+      # 添加 import
+      if ! grep -q "import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;" "$eureka_application_file"; then
+        sed -i.bak '1 a\
+import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;' "$eureka_application_file"
+      fi
+
+      # 添加 @EnableEurekaServer
+      sed -i.bak '/@SpringBootApplication/a\
+@EnableEurekaServer\
+' "$eureka_application_file"
+      rm "$eureka_application_file.bak"
+      echo "@EnableEurekaServer added."
+    else
+      echo "@EnableEurekaServer already present."
+    fi
+  else
+    echo "EurekaServerApplication.java not found in $EUREKA_ARTIFACT_DIR"
+    return 1
   fi
 
   echo "Building Eureka server..."
   cd "$EUREKA_ARTIFACT_DIR" || { echo "Failed to change directory to $EUREKA_ARTIFACT_DIR"; exit 1; }
   chmod +x ./gradlew
-  if ! ./gradlew clean build; then
+  if ! ./gradlew clean build --no-build-cache; then
     echo "Error: Build failed for Eureka server."
     exit 1
   fi
   cd - > /dev/null
 }
 
+
 # Function to start the local Eureka server
 start_local_eureka() {
   echo "Starting local Eureka server..."
-  java -jar "$EUREKA_DIR/build/libs/eureka-server-0.0.1-SNAPSHOT.jar" &
+  
+  # 使用 ls 获取匹配的 JAR 文件
+  JAR_FILE=$(ls "$EUREKA_ARTIFACT_DIR/build/libs/"eureka-*-SNAPSHOT.jar 2>/dev/null | head -n 1)
+
+  if [ -z "$JAR_FILE" ]; then
+    echo "Error: Unable to find the JAR file in $EUREKA_ARTIFACT_DIR/build/libs/"
+    exit 1
+  fi
+
+  java -jar "$JAR_FILE" &
   EUREKA_PID=$!
   echo "Eureka server started with PID $EUREKA_PID"
   sleep 10  # Wait for Eureka to stabilize
@@ -96,9 +176,37 @@ start_local_eureka() {
 # Function to stop the local Eureka server
 stop_local_eureka() {
   if [ -n "$EUREKA_PID" ]; then
-    echo "Stopping local Eureka server with PID $EUREKA_PID"
+    echo "Stopping local Eureka server with PID $EUREKA_PID..."
     kill "$EUREKA_PID"
-    EUREKA_PID=""
+    wait "$EUREKA_PID" 2>/dev/null || echo "Eureka server stopped."
+  else
+    echo "No Eureka server process found to stop."
+  fi
+}
+process_config_files() {
+  local config_dir="$1"
+  local yaml_source="$2"
+  local properties_file="$config_dir/application.properties"
+
+  echo "Processing configuration files in $config_dir"
+
+  mkdir -p "$config_dir"
+  if [ -f "$yaml_source" ]; then
+    echo "Copying application.yml to $config_dir"
+    cp "$yaml_source" "$config_dir/application.yml"
+
+    if grep -q "\$docker-service-name" "$config_dir/application.yml"; then
+      echo "\$docker-service-name found in application.yml. Replacing with http://localhost"
+      sed -i.bak "s|\$docker-service-name|http://localhost|g" "$config_dir/application.yml"
+      rm "$config_dir/application.yml.bak"
+    fi
+  else
+    echo "Warning: $yaml_source does not exist. Skipping application.yml replacement."
+  fi
+
+  if [ -f "$properties_file" ]; then
+    echo "Deleting $properties_file"
+    rm -f "$properties_file"
   fi
 }
 
@@ -106,60 +214,59 @@ stop_local_eureka() {
 process_directory() {
   local subdir="$1"
 
-  # 检查是否存在 build-config.yml 文件
+  # Check for build-config.yml
   local config_file="$subdir/build-config.yml"
   if [ ! -f "$config_file" ]; then
     echo "Skipping $subdir: Missing build-config.yml"
     return
   fi
 
-  # 提取配置参数
-  local GROUP_ID=$(grep "^GROUP_ID:" "$config_file" | awk -F': ' '{print $2}')
-  local ARTIFACT_ID=$(grep "^ARTIFACT_ID:" "$config_file" | awk -F': ' '{print $2}')
-  local NAME=$(grep "^NAME:" "$config_file" | awk -F': ' '{print $2}')
-  local DESCRIPTION=$(grep "^DESCRIPTION:" "$config_file" | awk -F': ' '{print $2}')
-  local PACKAGE_NAME=$(grep "^PACKAGE_NAME:" "$config_file" | awk -F': ' '{print $2}')
-  local BOOT_VERSION=$(grep "^BOOT_VERSION:" "$config_file" | awk -F': ' '{print $2}')
-  local DEPENDENCIES=$(awk '/^DEPENDENCIES:/ {flag=1; next} /^[^ ]/ {flag=0} flag {print}' "$config_file" | tr -d '-' | tr -d ' ' | paste -sd ',' -)
-  DEPENDENCIES=$(echo "$DEPENDENCIES" | sed 's/cloudconfigserver/cloud-config-server/g; s/cloudconfigclient/cloud-config-client/g; s/cloudeureka/cloud-eureka/g')
+  # Extract configuration parameters
+  # 使用 yq 提取参数
+  local GROUP_ID=$(yq '.GROUP_ID' "$config_file")
+  local ARTIFACT_ID=$(yq '.ARTIFACT_ID' "$config_file")
+  local NAME=$(yq '.NAME' "$config_file")
+  local DESCRIPTION=$(yq '.DESCRIPTION' "$config_file")
+  local BOOT_VERSION=$(yq '.BOOT_VERSION' "$config_file")
+  local ADD_ANOTATION=$(yq '.ADD_ANOTATION' "$config_file")
+  local ADD_IMPORT=$(yq '.ADD_IMPORT' "$config_file")
+  local DEPENDENCIES=$(yq -r '.DEPENDENCIES[]' "$config_file" | paste -sd "," -)
 
   echo "Processing $ARTIFACT_ID in $subdir"
 
   local artifact_dir="$subdir/$ARTIFACT_ID"
   local config_dir="$artifact_dir/src/main/resources"
   local yaml_source="$subdir/application.yml"
-  local properties_file="$config_dir/application.properties"
-  # 检查项目是否已经存在
+
+  
+  # 生成 Docker 用的 application.docker.yml
+  local docker_config="$subdir/application.docker.yml"
+  cp "$yaml_source" "$docker_config"
+  # 替换 $docker-service-name 为 docker-compose 中 eureka 服务名称
+  if grep -q "\$docker-service-name" "$docker_config"; then
+    echo "Replacing \$docker-service-name with http://eureka in application.docker.yml"
+    sed -i.bak "s|\$docker-service-name|http://eureka|g" "$docker_config"
+    rm "$docker_config.bak"
+  fi
+
+  # Check if project directory exists
   if [ -d "$artifact_dir" ]; then
     echo "Directory '$ARTIFACT_ID' already exists in $subdir."
-    if [ -f "$yaml_source" ]; then
-      echo "Copying application.yml to $config_dir"
-      mkdir -p "$config_dir"
-      cp "$yaml_source" "$config_dir/application.yml"
-      
+    process_config_files "$config_dir" "$yaml_source"
 
-      if grep -q "\$ngrok-ip" "$config_dir/application.yml"; then
-        echo "\$ngrok-ip found in application.yml. Replacing with http://localhost"
-        sed -i.bak "s|\$ngrok-ip|http://localhost|g" "$config_dir/application.yml"
-        rm "$config_dir/application.yml.bak"
-      fi
-
-      # 进入项目目录并执行构建命令
-      cd "$artifact_dir"
-      chmod +x ./gradlew
-      if ! ./gradlew clean build; then
-        echo "Error: Build failed for $ARTIFACT_ID."
-        cd - > /dev/null
-        return
-      fi
+    # Build the project
+    cd "$artifact_dir" || { echo "Failed to change directory to $artifact_dir"; return; }
+    chmod +x ./gradlew
+    if ! ./gradlew clean build --no-build-cache; then
+      echo "Error: Build failed for $ARTIFACT_ID."
       cd - > /dev/null
-    else
-      echo "Warning: $yaml_source does not exist. Skipping application.yml replacement."
+      return
     fi
+    cd - > /dev/null
     return
   fi
 
-  # 下载并解压 Spring Boot 项目
+  # Generate new project
   echo "Generating Spring Boot project: $ARTIFACT_ID"
   curl "https://start.spring.io/starter.tgz" \
     -d type=gradle-project \
@@ -182,17 +289,18 @@ process_directory() {
   tar -xzf "$subdir/$ARTIFACT_ID.tgz" -C "$artifact_dir"
   rm "$subdir/$ARTIFACT_ID.tgz"
 
-  if [ -f "$yaml_source" ]; then
-    echo "Copying application.yml to $config_dir"
-    mkdir -p "$config_dir"
-    cp "$yaml_source" "$config_dir/application.yml"
-    if [ -f "$properties_file" ];then
-      rm -rf "$properties_file"
-      echo "Delete $properties_file. Done"
-    fi
-  else
-    echo "Warning: $yaml_source does not exist. Skipping application.yml replacement."
+  # Process configuration files
+  process_config_files "$config_dir" "$yaml_source"
+
+  # Build the project
+  cd "$artifact_dir" || { echo "Failed to change directory to $artifact_dir"; return; }
+  chmod +x ./gradlew
+  if ! ./gradlew clean build --no-build-cache; then
+    echo "Error: Build failed for $ARTIFACT_ID."
+    cd - > /dev/null
+    return
   fi
+  cd - > /dev/null
 }
 
 # Main logic

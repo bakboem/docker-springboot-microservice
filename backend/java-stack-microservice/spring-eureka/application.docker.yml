@@ -5,14 +5,14 @@ server:
   port: ${port:8761}
 eureka:
   instance:
-    hostname: localhost  
+    hostname: eureka  
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 15
   client:
     registerWithEureka: false
     fetchRegistry: false      
     serviceUrl:
-      defaultZone: $docker-service-name:8761/eureka
+      defaultZone: http://eureka:8761/eureka
   server:
     enable-self-preservation: false 
     waitTimeInMsWhenSyncEmpty: 0
