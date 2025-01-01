@@ -87,13 +87,13 @@ All services are containerized using Docker, making it easy to manage, scale, an
    init-java-stack-services.sh \
    create-jwt-token-keypair.sh
    ```
-3. Build docker images:
-   ```bash
-   ./build-image.sh
-   ```
-4. Start projects with docker compose :
+3. Start projects with docker compose :
    ```bash
    ./start.sh
+   ```
+4. Stop projects with docker compose :
+   ```bash
+   ./stop.sh
    ```
 
 
