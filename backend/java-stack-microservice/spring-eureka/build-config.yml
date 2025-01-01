@@ -6,8 +6,6 @@ DESCRIPTION: Eureka For Service Discovery System
 PACKAGE_NAME: com.codera.eureka
 BOOT_VERSION: 3.4.1
 SERVER_PORT: 8761
-ADD_ANOTATION: EnableEurekaServer
-ADD_IMPORT: import org.springframework.cloud.netflix.eureka.org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
 DEPENDENCIES:
   - actuator
   - cloud-eureka-server

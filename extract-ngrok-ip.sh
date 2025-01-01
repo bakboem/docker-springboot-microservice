@@ -1,6 +1,12 @@
+set -e 
 
 # 停止本地 运行中的 ngrok
-killall ngrok
+if pgrep -x "ngrok" > /dev/null; then
+  echo "Stopping running ngrok process..."
+  killall ngrok
+else
+  echo "No running ngrok process found."
+fi
 
 # 检查 ngrok 是否正在监听端口 80
 if ! curl -s http://127.0.0.1:4040/api/tunnels | jq -e '.tunnels[] | select(.config.addr == "http://localhost:80")' > /dev/null 2>&1; then
@@ -9,7 +15,6 @@ if ! curl -s http://127.0.0.1:4040/api/tunnels | jq -e '.tunnels[] | select(.con
   ngrok http 80 > ngrok.log 2>&1 &
   sleep 5 # 等待 ngrok 启动
 fi
-
 # 提取 ngrok 的公网 URL
 PUBLIC_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[] | select(.config.addr == "http://localhost:80") | .public_url')
 PUBLIC_URL_CLEANED=""
@@ -28,4 +33,3 @@ if [ -n "$PUBLIC_URL" ]; then
 else
   echo "No public URL found. Please ensure ngrok is running and a tunnel is open."
 fi
-

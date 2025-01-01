@@ -1,47 +1,12 @@
 #!/bin/bash
 set -e 
-
+trap stop_local_eureka EXIT
 # 设置主路径
 JAVA_STACK_PATH="./backend/java-stack-microservice"
 EUREKA_DIR="$JAVA_STACK_PATH/spring-eureka"
 EUREKA_ARTIFACT_DIR="$EUREKA_DIR/eureka"
 EUREKA_PID=""
 
-start_ngrok (){
-# 停止本地 运行中的 ngrok
-if pgrep -x "ngrok" > /dev/null; then
-  echo "Stopping running ngrok process..."
-  killall ngrok
-else
-  echo "No running ngrok process found."
-fi
-
-# 检查 ngrok 是否正在监听端口 80
-if ! curl -s http://127.0.0.1:4040/api/tunnels | jq -e '.tunnels[] | select(.config.addr == "http://localhost:80")' > /dev/null 2>&1; then
-  echo "No active ngrok tunnel for port 80. Starting ngrok..."
-  # 启动 ngrok 并后台运行，将输出保存到日志文件
-  ngrok http 80 > ngrok.log 2>&1 &
-  sleep 5 # 等待 ngrok 启动
-fi
-# 提取 ngrok 的公网 URL
-PUBLIC_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[] | select(.config.addr == "http://localhost:80") | .public_url')
-PUBLIC_URL_CLEANED=""
-# 检查是否提取到 URL
-if [ -n "$PUBLIC_URL" ]; then
-  # 去掉 https:// 前缀
-  PUBLIC_URL_CLEANED=$(echo "$PUBLIC_URL" | sed 's|https://||')
-
-  echo "Cleaned Public URL: $PUBLIC_URL_CLEANED"
-
-  # 替换 .env 文件中的 KAFKA_CFG_ADVERTISED_LISTENERS 配置
-  ENV_FILE="./backend/nocode-standalone-instance/kafka/.env"
-  sed -i.bak "s|^KAFKA_CFG_ADVERTISED_LISTENERS=.*|KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://$PUBLIC_URL_CLEANED:9092|" "$ENV_FILE"
-
-  echo ".env file updated with: PLAINTEXT://$PUBLIC_URL_CLEANED:9092"
-else
-  echo "No public URL found. Please ensure ngrok is running and a tunnel is open."
-fi
-}
 
 # Function to build and prepare the local Eureka server
 # Function to build and prepare the local Eureka server dynamically
@@ -59,8 +24,6 @@ build_local_eureka() {
   local NAME=$(yq '.NAME' "$config_file")
   local DESCRIPTION=$(yq '.DESCRIPTION' "$config_file")
   local BOOT_VERSION=$(yq '.BOOT_VERSION' "$config_file")
-  local ADD_ANOTATION=$(yq '.ADD_ANOTATION' "$config_file")
-  local ADD_IMPORT=$(yq '.ADD_IMPORT' "$config_file")
   local DEPENDENCIES=$(yq -r '.DEPENDENCIES[]' "$config_file" | paste -sd "," -)
 
   echo "Extracted dependencies: $DEPENDENCIES"
@@ -228,8 +191,6 @@ process_directory() {
   local NAME=$(yq '.NAME' "$config_file")
   local DESCRIPTION=$(yq '.DESCRIPTION' "$config_file")
   local BOOT_VERSION=$(yq '.BOOT_VERSION' "$config_file")
-  local ADD_ANOTATION=$(yq '.ADD_ANOTATION' "$config_file")
-  local ADD_IMPORT=$(yq '.ADD_IMPORT' "$config_file")
   local DEPENDENCIES=$(yq -r '.DEPENDENCIES[]' "$config_file" | paste -sd "," -)
 
   echo "Processing $ARTIFACT_ID in $subdir"
@@ -237,15 +198,15 @@ process_directory() {
   local artifact_dir="$subdir/$ARTIFACT_ID"
   local config_dir="$artifact_dir/src/main/resources"
   local yaml_source="$subdir/application.yml"
-
+  local eurekaURL="http://eureka"
   
   # 生成 Docker 用的 application.docker.yml
   local docker_config="$subdir/application.docker.yml"
   cp "$yaml_source" "$docker_config"
   # 替换 $docker-service-name 为 docker-compose 中 eureka 服务名称
   if grep -q "\$docker-service-name" "$docker_config"; then
-    echo "Replacing \$docker-service-name with http://eureka in application.docker.yml"
-    sed -i.bak "s|\$docker-service-name|http://eureka|g" "$docker_config"
+    echo "Replacing \$docker-service-name with $eurekaURL in application.docker.yml"
+    sed -i.bak "s|\$docker-service-name|$eurekaURL|g" "$docker_config"
     rm "$docker_config.bak"
   fi
 
@@ -303,16 +264,15 @@ process_directory() {
   cd - > /dev/null
 }
 
+
 # Main logic
-start_ngrok
 build_local_eureka
+sleep 10 
 start_local_eureka
 
 find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
   [[ "$subdir" == "$EUREKA_DIR" ]] && continue  # Skip Eureka directory
   process_directory "$subdir"
 done
-
-stop_local_eureka
 
 echo "All operations completed successfully."
