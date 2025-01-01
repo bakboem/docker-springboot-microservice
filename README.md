@@ -62,6 +62,7 @@ All services are containerized using Docker, making it easy to manage, scale, an
 
 - Docker and Docker Compose installed.
 - Ngrok installed locally.
+- jq installed.
 - Required ports (e.g., 80, 9092) available on the host machine.
 
 

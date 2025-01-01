@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: config-server
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:./config-repo 
+server:
+  port: 8888
+eureka:
+  client:
+    service-url:
+      # CHANGE
+      defaultZone: http://localhost:8761/eureka/ 
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: false     
+  instance:
+      hostname: config-server
+      instance-id: ${spring.application.name}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, health, info

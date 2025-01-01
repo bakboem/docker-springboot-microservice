@@ -183,7 +183,9 @@ services:
     restart: always
     networks:
       - app-network
-    depends_on: [eureka]
+    depends_on:
+      eureka:
+        condition: service_healthy
 networks:
   app-network:
     driver: bridge
