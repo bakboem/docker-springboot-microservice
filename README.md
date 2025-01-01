@@ -82,7 +82,10 @@ All services are containerized using Docker, making it easy to manage, scale, an
    ```
 2. Grant permissions to script files
    ```bash
-   chmod +x start.sh stop.sh build-image.sh
+   chmod +x start.sh stop.sh \
+   extract-ngrok-ip.sh build-image.sh \
+   init-java-stack-services.sh \
+   create-jwt-token-keypair.sh
    ```
 3. Build docker images:
    ```bash
