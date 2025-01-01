@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e 
-echo "qqq"
+
+# 设置主路径
+JAVA_STACK_PATH="./backend/java-stack-microservice"
+EUREKA_DIR="$JAVA_STACK_PATH/spring-eureka"
+EUREKA_ARTIFACT_DIR="$EUREKA_DIR/eureka"
+EUREKA_PID=""
+
+start_ngrok (){
 # 停止本地 运行中的 ngrok
 if pgrep -x "ngrok" > /dev/null; then
   echo "Stopping running ngrok process..."
@@ -34,78 +41,122 @@ if [ -n "$PUBLIC_URL" ]; then
 else
   echo "No public URL found. Please ensure ngrok is running and a tunnel is open."
 fi
+}
 
-# 设置主路径
-export JAVA_STACK_PATH="./backend/java-stack-microservice"
+# Function to build and prepare the local Eureka server
+build_local_eureka() {
+  if [ ! -d "$EUREKA_ARTIFACT_DIR" ]; then
+    echo "Eureka directory not found. Generating project..."
+    mkdir -p "$EUREKA_ARTIFACT_DIR"
 
-# 检查主路径是否存在
-if [ ! -d "$JAVA_STACK_PATH" ]; then
-  echo "Error: Directory $JAVA_STACK_PATH does not exist."
-  exit 1
-fi
+    curl "https://start.spring.io/starter.tgz" \
+      -d type=gradle-project \
+      -d language=java \
+      -d bootVersion=3.4.1 \
+      -d groupId=com.example \
+      -d artifactId=eureka-server \
+      -d name=EurekaServer \
+      -d description="Eureka Server for Service Discovery" \
+      -d dependencies=cloud-eureka-server \
+      --output "$EUREKA_DIR/eureka-server.tgz"
 
-# 遍历 JAVA_STACK_PATH 目录下的所有子目录
-find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
-  echo "Processing directory: $subdir"
+    tar -xzf "$EUREKA_DIR/eureka-server.tgz" -C "$EUREKA_ARTIFACT_DIR"
+    rm "$EUREKA_DIR/eureka-server.tgz"
+    # copy
+    local config_dir="$EUREKA_ARTIFACT_DIR/src/main/resources"
+    local yaml_source="$EUREKA_DIR/application.yml"
+    local properties_file="$config_dir/application.properties"
+    cp "$yaml_source" "$config_dir/application.yml"
+
+    if [ -f "$properties_file" ];then
+      rm -rf "$properties_file"
+      echo "Delete $properties_file. Done"
+    fi
+  fi
+
+  echo "Building Eureka server..."
+  cd "$EUREKA_ARTIFACT_DIR" || { echo "Failed to change directory to $EUREKA_ARTIFACT_DIR"; exit 1; }
+  chmod +x ./gradlew
+  if ! ./gradlew clean build; then
+    echo "Error: Build failed for Eureka server."
+    exit 1
+  fi
+  cd - > /dev/null
+}
+
+# Function to start the local Eureka server
+start_local_eureka() {
+  echo "Starting local Eureka server..."
+  java -jar "$EUREKA_DIR/build/libs/eureka-server-0.0.1-SNAPSHOT.jar" &
+  EUREKA_PID=$!
+  echo "Eureka server started with PID $EUREKA_PID"
+  sleep 10  # Wait for Eureka to stabilize
+}
+
+# Function to stop the local Eureka server
+stop_local_eureka() {
+  if [ -n "$EUREKA_PID" ]; then
+    echo "Stopping local Eureka server with PID $EUREKA_PID"
+    kill "$EUREKA_PID"
+    EUREKA_PID=""
+  fi
+}
+
+# Function to process a single project directory
+process_directory() {
+  local subdir="$1"
 
   # 检查是否存在 build-config.yml 文件
-  config_file="$subdir/build-config.yml"
+  local config_file="$subdir/build-config.yml"
   if [ ! -f "$config_file" ]; then
     echo "Skipping $subdir: Missing build-config.yml"
-    continue
+    return
   fi
 
   # 提取配置参数
-  GROUP_ID=$(grep "^GROUP_ID:" "$config_file" | awk -F': ' '{print $2}')
-  ARTIFACT_ID=$(grep "^ARTIFACT_ID:" "$config_file" | awk -F': ' '{print $2}')
-  NAME=$(grep "^NAME:" "$config_file" | awk -F': ' '{print $2}')
-  DESCRIPTION=$(grep "^DESCRIPTION:" "$config_file" | awk -F': ' '{print $2}')
-  PACKAGE_NAME=$(grep "^PACKAGE_NAME:" "$config_file" | awk -F': ' '{print $2}')
-  BOOT_VERSION=$(grep "^BOOT_VERSION:" "$config_file" | awk -F': ' '{print $2}')
-  SERVER_PORT=$(grep "^SERVER_PORT:" "$config_file" | awk -F': ' '{print $2}')
-  DEPENDENCIES=$(awk '/^DEPENDENCIES:/ {flag=1; next} /^[^ ]/ {flag=0} flag {print}' "$config_file" | tr -d '-' | tr -d ' ' | paste -sd ',' -)
+  local GROUP_ID=$(grep "^GROUP_ID:" "$config_file" | awk -F': ' '{print $2}')
+  local ARTIFACT_ID=$(grep "^ARTIFACT_ID:" "$config_file" | awk -F': ' '{print $2}')
+  local NAME=$(grep "^NAME:" "$config_file" | awk -F': ' '{print $2}')
+  local DESCRIPTION=$(grep "^DESCRIPTION:" "$config_file" | awk -F': ' '{print $2}')
+  local PACKAGE_NAME=$(grep "^PACKAGE_NAME:" "$config_file" | awk -F': ' '{print $2}')
+  local BOOT_VERSION=$(grep "^BOOT_VERSION:" "$config_file" | awk -F': ' '{print $2}')
+  local DEPENDENCIES=$(awk '/^DEPENDENCIES:/ {flag=1; next} /^[^ ]/ {flag=0} flag {print}' "$config_file" | tr -d '-' | tr -d ' ' | paste -sd ',' -)
   DEPENDENCIES=$(echo "$DEPENDENCIES" | sed 's/cloudconfigserver/cloud-config-server/g; s/cloudconfigclient/cloud-config-client/g; s/cloudeureka/cloud-eureka/g')
 
-  echo "GROUP_ID: $GROUP_ID"
-  echo "ARTIFACT_ID: $ARTIFACT_ID"
-  echo "NAME: $NAME"
-  echo "DESCRIPTION: $DESCRIPTION"
-  echo "PACKAGE_NAME: $PACKAGE_NAME"
-  echo "BOOT_VERSION: $BOOT_VERSION"
-  echo "SERVER_PORT: $SERVER_PORT"
-  echo "DEPENDENCIES: $DEPENDENCIES"
+  echo "Processing $ARTIFACT_ID in $subdir"
+
+  local artifact_dir="$subdir/$ARTIFACT_ID"
+  local config_dir="$artifact_dir/src/main/resources"
+  local yaml_source="$subdir/application.yml"
+  local properties_file="$config_dir/application.properties"
   # 检查项目是否已经存在
-  if [ -d "$subdir/$ARTIFACT_ID" ]; then
-    echo "Directory '$ARTIFACT_ID' already exists in $subdir. Skipping project generation."
-    CONFIG_DIR="$subdir/$ARTIFACT_ID/src/main/resources"
-    YAML_SOURCE="$subdir/application.yml"
-    if [ -f "$YAML_SOURCE" ]; then
-      # 如果存在 则 替换ngrok ip 到 application.yml 中的占位符
-      echo "Copying application.yml to $CONFIG_DIR"
-      cp "$YAML_SOURCE" "$CONFIG_DIR/application.yml"
-      # 检查并替换 $ngrok-ip 占位符
-      SAFE_NGROK_URL=$(echo "$PUBLIC_URL" | sed 's/[&/\]/\\&/g')
-      echo "Replacing \$ngrok-ip in application.yml with $SAFE_NGROK_URL"
-      sed -i.bak "s|\$ngrok-ip|$SAFE_NGROK_URL|g" "$CONFIG_DIR/application.yml"
-      rm "$CONFIG_DIR/application.yml.bak"
+  if [ -d "$artifact_dir" ]; then
+    echo "Directory '$ARTIFACT_ID' already exists in $subdir."
+    if [ -f "$yaml_source" ]; then
+      echo "Copying application.yml to $config_dir"
+      mkdir -p "$config_dir"
+      cp "$yaml_source" "$config_dir/application.yml"
+      
+
+      if grep -q "\$ngrok-ip" "$config_dir/application.yml"; then
+        echo "\$ngrok-ip found in application.yml. Replacing with http://localhost"
+        sed -i.bak "s|\$ngrok-ip|http://localhost|g" "$config_dir/application.yml"
+        rm "$config_dir/application.yml.bak"
+      fi
 
       # 进入项目目录并执行构建命令
-      cd "$subdir/$ARTIFACT_ID" || { echo "Failed to change directory to $subdir/$ARTIFACT_ID"; exit 1; }
-   
-
+      cd "$artifact_dir"
       chmod +x ./gradlew
       if ! ./gradlew clean build; then
-        echo "Error: Build failed for $ARTIFACT_ID. Returning to original directory."
-        cd - > /dev/null || exit 1
-        exit 1
+        echo "Error: Build failed for $ARTIFACT_ID."
+        cd - > /dev/null
+        return
       fi
-    
-      # 无论成功或失败都返回原目录
-      cd - > /dev/null || exit 1
+      cd - > /dev/null
     else
-      echo "Warning: $YAML_SOURCE does not exist. Skipping application.yml replacement."
+      echo "Warning: $yaml_source does not exist. Skipping application.yml replacement."
     fi
-    continue
+    return
   fi
 
   # 下载并解压 Spring Boot 项目
@@ -124,48 +175,36 @@ find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; 
 
   if ! tar -tzf "$subdir/$ARTIFACT_ID.tgz" > /dev/null 2>&1; then
     echo "Error: Invalid archive format for $ARTIFACT_ID. Skipping..."
-    continue
+    return
   fi
 
-  mkdir -p "$subdir/$ARTIFACT_ID"
-  tar -xzf "$subdir/$ARTIFACT_ID.tgz" -C "$subdir/$ARTIFACT_ID"
+  mkdir -p "$artifact_dir"
+  tar -xzf "$subdir/$ARTIFACT_ID.tgz" -C "$artifact_dir"
   rm "$subdir/$ARTIFACT_ID.tgz"
 
-  # 移动 application.yml 文件到项目目录
-  CONFIG_DIR="$subdir/$ARTIFACT_ID/src/main/resources"
-  YAML_SOURCE="$subdir/application.yml"
-  if [ -f "$YAML_SOURCE" ]; then
-    echo "Copying application.yml to $CONFIG_DIR"
-    cp "$YAML_SOURCE" "$CONFIG_DIR/application.yml"
+  if [ -f "$yaml_source" ]; then
+    echo "Copying application.yml to $config_dir"
+    mkdir -p "$config_dir"
+    cp "$yaml_source" "$config_dir/application.yml"
+    if [ -f "$properties_file" ];then
+      rm -rf "$properties_file"
+      echo "Delete $properties_file. Done"
+    fi
   else
-    echo "Warning: $YAML_SOURCE does not exist. Skipping..."
+    echo "Warning: $yaml_source does not exist. Skipping application.yml replacement."
   fi
+}
 
-  REPO_SOURCE="$subdir/config-repo"
-  if [ -d "$REPO_SOURCE" ]; then
-    echo "Copying directory $REPO_SOURCE to $CONFIG_DIR"
-    cp -r "$REPO_SOURCE" "$CONFIG_DIR/"
-  else
-    echo "$REPO_SOURCE is not a directory or does not exist. Skipping..."
-  fi
+# Main logic
+start_ngrok
+build_local_eureka
+start_local_eureka
 
-  # 删除无用的 .properties 文件
-  PROPERTIES_FILE="$CONFIG_DIR/application.properties"
-  if [ -f "$PROPERTIES_FILE" ]; then
-    echo "Found $PROPERTIES_FILE. Deleting it."
-    rm -f "$PROPERTIES_FILE"
-  fi
-
-  # 进入项目目录并执行构建命令
-  cd "$subdir/$ARTIFACT_ID"
-  chmod +x ./gradlew
-  if ! ./gradlew clean build; then
-    echo "Error: Build failed for $ARTIFACT_ID. Exiting."
-    exit 1
-  fi
-  cd - > /dev/null
-
-  echo "Project $ARTIFACT_ID setup completed."
+find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
+  [[ "$subdir" == "$EUREKA_DIR" ]] && continue  # Skip Eureka directory
+  process_directory "$subdir"
 done
+
+stop_local_eureka
 
 echo "All operations completed successfully."

@@ -12,7 +12,7 @@ eureka:
   client:
     service-url:
       # CHANGE
-      defaultZone: https://8f10-61-82-161-233.ngrok-free.app:8761/eureka/ 
+      defaultZone: $ngrok-ip:8761/eureka/ 
     enabled: true
     register-with-eureka: true  
     fetch-registry: false
