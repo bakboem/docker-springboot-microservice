@@ -43,29 +43,6 @@ services:
     restart: always
 
 
-  kafka:
-#     build: 
-#       context: ./backend/nocode-standalone-instance/kafka
-    image: ecm-kafka
-    container_name: ecm-kafka
-    profiles:
-      - standalone
-    env_file:
-      - ./backend/nocode-standalone-instance/kafka/.env
-    ports:
-      - "9092:9092"
-      - "9093:9093"
-    volumes:
-      - ecm-kafka-data-dev:/var/lib/kafka/data
-    healthcheck:
-      test: ["CMD", "bash", "-c", "echo -n | nc -z 0.0.0.0 9092"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-    restart: always
-
-
   grafana:
 #     build:
 #       context: ./backend/nocode-standalone-instance/monitoring/grafana/
@@ -150,6 +127,7 @@ services:
     restart: always
     
 
+
 #######  JAVA Stack ########
   eureka:
 #     build:
@@ -195,6 +173,29 @@ services:
     depends_on:
       eureka:
         condition: service_healthy
+  kafka:
+#     build: 
+#       context: ./backend/nocode-standalone-instance/kafka
+    image: ecm-kafka
+    container_name: ecm-kafka
+    profiles:
+      - java-microservices
+    env_file:
+      - ./backend/nocode-standalone-instance/kafka/.env
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    volumes:
+      - ecm-kafka-data-dev:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo -n | nc -z 0.0.0.0 9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: always
+    networks:
+      - app-network
 networks:
   app-network:
     driver: bridge

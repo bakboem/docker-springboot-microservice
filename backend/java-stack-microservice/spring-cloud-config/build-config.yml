@@ -1,4 +1,4 @@
-# create spring boot project
+# create project with spring boot cli
 GROUP_ID: com.codera
 ARTIFACT_ID: config-server
 NAME: config-server
@@ -6,8 +6,11 @@ DESCRIPTION: Eureka For Service Discovery System
 PACKAGE_NAME: com.codera.config
 BOOT_VERSION: 3.4.1
 SERVER_PORT: 8888
+EUREKA_SERVER_NAME: eureka
+KAFKA_SERVER_NAME: kafka
 DEPENDENCIES:
   - cloud-eureka
   - cloud-config-server
   - actuator
   - web
+  - kafka

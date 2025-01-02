@@ -24,6 +24,8 @@ build_local_eureka() {
   local NAME=$(yq '.NAME' "$config_file")
   local DESCRIPTION=$(yq '.DESCRIPTION' "$config_file")
   local BOOT_VERSION=$(yq '.BOOT_VERSION' "$config_file")
+  local EUREKA_SERVER_NAME=$(yq '.EUREKA_SERVER_NAME' "$config_file")
+  local KAFKA_SERVER_NAME=$(yq '.KAFKA_SERVER_NAME' "$config_file")
   local DEPENDENCIES=$(yq -r '.DEPENDENCIES[]' "$config_file" | paste -sd "," -)
 
   echo "Extracted dependencies: $DEPENDENCIES"
@@ -42,6 +44,7 @@ build_local_eureka() {
       -d name="$NAME" \
       -d description="$DESCRIPTION" \
       -d dependencies=$DEPENDENCIES \
+  
       --output "$EUREKA_DIR/eureka-server.tgz"
 
     tar -xzf "$EUREKA_DIR/eureka-server.tgz" -C "$EUREKA_ARTIFACT_DIR"
@@ -51,23 +54,23 @@ build_local_eureka() {
     local yaml_source="$EUREKA_DIR/application.yml"
     local properties_file="$config_dir/application.properties"
     cp "$yaml_source" "$config_dir/application.yml"
-    sed -i.bak "s|\$docker-service-name|http://localhost|g" "$config_dir/application.yml"
+    sed -i.bak "s|\$eureka-service-name-in-docker|http://localhost|g" "$config_dir/application.yml"
       rm "$config_dir/application.yml.bak"
     
     # 生成 Docker 用的 application.docker.yml
     local docker_config="$EUREKA_DIR/application.docker.yml"
     cp "$yaml_source" "$docker_config"
-    # 替换 $docker-service-name 为 docker-compose 中 eureka 服务名称
-    if grep -q "\$docker-service-name" "$docker_config"; then
-      echo "Replacing \$docker-service-name with http://eureka in application.docker.yml"
-      sed -i.bak "s|\$docker-service-name|http://eureka|g" "$docker_config"
+    # 替换 $eureka-service-name-in-docker 为 docker-compose 中 eureka 服务名称
+    if grep -q "\$eureka-service-name-in-docker" "$docker_config"; then
+      echo "Replacing \$eureka-service-name-in-docker with http://eureka in application.docker.yml"
+      sed -i.bak "s|\$eureka-service-name-in-docker|http://eureka|g" "$docker_config"
       rm "$docker_config.bak"
     fi
 
     # 如果是 Eureka Server 项目，设置 hostname 为 eureka
     if grep -q "hostname: localhost" "$docker_config"; then
       echo "Updating hostname to eureka in application.docker.yml"
-      sed -i.bak "s|hostname: localhost|hostname: eureka|g" "$docker_config"
+      sed -i.bak "s|hostname: localhost|hostname: $EUREKA_SERVER_NAME|g" "$docker_config"
       rm "$docker_config.bak"
     fi
 
@@ -147,26 +150,66 @@ stop_local_eureka() {
   fi
 }
 process_config_files() {
-  local config_dir="$1"
-  local yaml_source="$2"
+  local EUREKA_SERVER_NAME="$1"
+  local KAFKA_SERVER_NAME="$2"
+  local subdir="$3"
+  local ARTIFACT_ID="$4"
+  local artifact_dir="$subdir/$ARTIFACT_ID"
+  local config_dir="$artifact_dir/src/main/resources"
+  local yaml_source="$subdir/application.yml"
   local properties_file="$config_dir/application.properties"
+  # 处理 application.docker.yml
+  local docker_config="$subdir/application.docker.yml"
+  mkdir -p "$config_dir"
+  # 定义变量替换规则
+# 使用普通数组定义变量和替换值
+replacements_docker=(
+  "\$eureka-service-name-in-docker=http://$EUREKA_SERVER_NAME"
+  "\$kafka-server-name-in-docker=http://$KAFKA_SERVER_NAME"
+ )
+replacements_local=(
+  "\$eureka-service-name-in-docker=http://localhost" 
+  "\$kafka-server-name-in-docker=http://localhost"
+ )
+
+# 通用的变量替换函数
+replace_variables() {
+  local file="$1"
+  local vars=("${!2}") # 接收数组作为参数
+
+  for kv in "${vars[@]}"; do
+    key="${kv%%=*}"  # 提取键
+    value="${kv#*=}" # 提取值
+    if grep -q "$key" "$file"; then
+      echo "Replacing $key with $value in $file"
+      sed -i.bak "s|$key|$value|g" "$file"
+      rm "$file.bak"
+    fi
+  done
+}
 
   echo "Processing configuration files in $config_dir"
 
-  mkdir -p "$config_dir"
-  if [ -f "$yaml_source" ]; then
-    echo "Copying application.yml to $config_dir"
-    cp "$yaml_source" "$config_dir/application.yml"
 
-    if grep -q "\$docker-service-name" "$config_dir/application.yml"; then
-      echo "\$docker-service-name found in application.yml. Replacing with http://localhost"
-      sed -i.bak "s|\$docker-service-name|http://localhost|g" "$config_dir/application.yml"
-      rm "$config_dir/application.yml.bak"
-    fi
+  if [ -f "$yaml_source" ]; then
+    echo "Creating Docker-specific configuration: $docker_config"
+    cp "$yaml_source" "$docker_config"
+    replace_variables "$docker_config" replacements_docker[@]
   else
-    echo "Warning: $yaml_source does not exist. Skipping application.yml replacement."
+    echo "Warning: $yaml_source does not exist. Skipping Docker configuration."
   fi
 
+  # 处理 config_dir/application.yml
+  local local_config="$config_dir/application.yml"
+  if [ -f "$yaml_source" ]; then
+    echo "Creating local configuration: $local_config"
+    cp "$yaml_source" "$local_config"
+    replace_variables "$local_config" replacements_local[@]
+  else
+    echo "Warning: $yaml_source does not exist. Skipping local configuration."
+  fi
+
+  # 删除 application.properties（如果存在）
   if [ -f "$properties_file" ]; then
     echo "Deleting $properties_file"
     rm -f "$properties_file"
@@ -191,29 +234,18 @@ process_directory() {
   local NAME=$(yq '.NAME' "$config_file")
   local DESCRIPTION=$(yq '.DESCRIPTION' "$config_file")
   local BOOT_VERSION=$(yq '.BOOT_VERSION' "$config_file")
+  local EUREKA_SERVER_NAME=$(yq '.EUREKA_SERVER_NAME' "$config_file")
+  local KAFKA_SERVER_NAME=$(yq '.KAFKA_SERVER_NAME' "$config_file")
   local DEPENDENCIES=$(yq -r '.DEPENDENCIES[]' "$config_file" | paste -sd "," -)
 
   echo "Processing $ARTIFACT_ID in $subdir"
 
   local artifact_dir="$subdir/$ARTIFACT_ID"
-  local config_dir="$artifact_dir/src/main/resources"
-  local yaml_source="$subdir/application.yml"
-  local eurekaURL="http://eureka"
-  
-  # 生成 Docker 用的 application.docker.yml
-  local docker_config="$subdir/application.docker.yml"
-  cp "$yaml_source" "$docker_config"
-  # 替换 $docker-service-name 为 docker-compose 中 eureka 服务名称
-  if grep -q "\$docker-service-name" "$docker_config"; then
-    echo "Replacing \$docker-service-name with $eurekaURL in application.docker.yml"
-    sed -i.bak "s|\$docker-service-name|$eurekaURL|g" "$docker_config"
-    rm "$docker_config.bak"
-  fi
 
   # Check if project directory exists
   if [ -d "$artifact_dir" ]; then
     echo "Directory '$ARTIFACT_ID' already exists in $subdir."
-    process_config_files "$config_dir" "$yaml_source"
+    process_config_files "$EUREKA_SERVER_NAME" "$KAFKA_SERVER_NAME" "$subdir" "$ARTIFACT_ID"
 
     # Build the project
     cd "$artifact_dir" || { echo "Failed to change directory to $artifact_dir"; return; }

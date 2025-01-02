@@ -4,6 +4,15 @@ spring:
   main:
     allow-bean-definition-overriding: true
   cloud:
+    bus:
+      enable: true
+    stream:
+      kafka:
+        binder:
+          brokers: http://localhost:9092
+      bindings:
+        input:
+          destination: springCloudBus
     config:
       server:
         native:

@@ -12,7 +12,7 @@ eureka:
     registerWithEureka: false
     fetchRegistry: false      
     serviceUrl:
-      defaultZone: $docker-service-name:8761/eureka
+      defaultZone: $eureka-service-name-in-docker:8761/eureka
   server:
     enable-self-preservation: false 
     waitTimeInMsWhenSyncEmpty: 0
