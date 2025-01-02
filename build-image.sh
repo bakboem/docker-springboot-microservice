@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e 
-./extract-ngrok-ip.sh
+# ./extract-ngrok-ip.sh
 ./init-java-stack-services.sh;
 
 # 如果备份文件存在，恢复备份文件

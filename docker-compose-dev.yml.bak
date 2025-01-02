@@ -165,6 +165,7 @@ services:
     depends_on:
       eureka:
         condition: service_healthy
+        
   kafka:
     build: 
       context: ./backend/nocode-standalone-instance/kafka
@@ -176,6 +177,7 @@ services:
     ports:
       - "9092:9092"
       - "9093:9093"
+      - "8082:8082"
     volumes:
       - ecm-kafka-data-dev:/var/lib/kafka/data
     healthcheck:

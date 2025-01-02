@@ -165,11 +165,11 @@ process_config_files() {
 # 使用普通数组定义变量和替换值
 replacements_docker=(
   "\$eureka-service-name-in-docker=http://$EUREKA_SERVER_NAME"
-  "\$kafka-server-name-in-docker=http://$KAFKA_SERVER_NAME"
+  "\$kafka-server-name-in-docker=$KAFKA_SERVER_NAME"
  )
 replacements_local=(
   "\$eureka-service-name-in-docker=http://localhost" 
-  "\$kafka-server-name-in-docker=http://localhost"
+  "\$kafka-server-name-in-docker=localhost"
  )
 
 # 通用的变量替换函数
@@ -283,7 +283,7 @@ process_directory() {
   rm "$subdir/$ARTIFACT_ID.tgz"
 
   # Process configuration files
-  process_config_files "$config_dir" "$yaml_source"
+  process_config_files "$EUREKA_SERVER_NAME" "$KAFKA_SERVER_NAME" "$subdir" "$ARTIFACT_ID"
 
   # Build the project
   cd "$artifact_dir" || { echo "Failed to change directory to $artifact_dir"; return; }

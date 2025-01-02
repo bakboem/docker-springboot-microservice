@@ -9,7 +9,7 @@ spring:
     stream:
       kafka:
         binder:
-          brokers: http://kafka:9092
+          brokers: kafka:9092
       bindings:
         input:
           destination: springCloudBus
@@ -34,4 +34,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: refresh, health, info
+        include:  "*"

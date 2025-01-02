@@ -41,11 +41,6 @@
 
 All services are containerized using Docker, making it easy to manage, scale, and deploy.
 
-### Environment Proxies with Ngrok
-
-- Added **ngrok** to expose the local environment to the external network.
-- **ngrok** is configured to map local port 80 to a publicly accessible URL for testing and debugging external integrations.
-- Scripts automate the detection of port mapping and update the `KAFKA_CFG_ADVERTISED_LISTENERS` dynamically with the ngrok public URL.
 
 ### Deployment and Automation
 
@@ -61,7 +56,6 @@ All services are containerized using Docker, making it easy to manage, scale, an
 ### Prerequisites
 
 - Docker and Docker Compose installed.
-- Ngrok installed locally.
 - jq installed.
 - Required ports (e.g., 80, 9092) available on the host machine.
 
@@ -83,8 +77,7 @@ All services are containerized using Docker, making it easy to manage, scale, an
 2. Grant permissions to script files
    ```bash
    chmod +x start.sh stop.sh \
-   extract-ngrok-ip.sh build-image.sh \
-   init-java-stack-services.sh \
+   build-image.sh init-java-stack-services.sh \
    create-jwt-token-keypair.sh
    ```
 3. Start projects with docker compose :

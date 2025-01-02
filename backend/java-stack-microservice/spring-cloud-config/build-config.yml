@@ -14,3 +14,4 @@ DEPENDENCIES:
   - actuator
   - web
   - kafka
+  - cloud-bus
