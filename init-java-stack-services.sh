@@ -1,22 +1,25 @@
 #!/bin/bash
 set -e 
+# use exit 
 trap stop_all EXIT
-# 设置主路径
+# root path
 JAVA_STACK_PATH="./backend/java-stack-microservice"
+
+# eureka 
 EUREKA_DIR="$JAVA_STACK_PATH/spring-eureka"
 EUREKA_ARTIFACT_DIR="$EUREKA_DIR/eureka"
 EUREKA_PID=""
 
+# config-server
 CONFIG_DIR="$JAVA_STACK_PATH/spring-cloud-config"
 CONFIG_ARTIFACT_DIR="$CONFIG_DIR/config-server"
 CONFIG_PID=""
 
 
-# Function to start the local Eureka server
+# for the compilation stage
 start_local_eureka() {
   echo "Starting local Eureka server..."
   
-  # 使用 ls 获取匹配的 JAR 文件
   JAR_FILE=$(ls "$EUREKA_ARTIFACT_DIR/build/libs/"eureka-*-SNAPSHOT.jar 2>/dev/null | head -n 1)
 
   if [ -z "$JAR_FILE" ]; then
@@ -27,7 +30,6 @@ start_local_eureka() {
   java -jar "$JAR_FILE" &
   EUREKA_PID=$!
   echo "Eureka server started with PID $EUREKA_PID"
-  sleep 10  # Wait for Eureka to stabilize
 }
 
 # Function to stop the local Eureka server
@@ -74,7 +76,6 @@ stop_all() {
 start_local_config() {
   echo "Starting local Eureka server..."
   
-  # 使用 ls 获取匹配的 JAR 文件
   JAR_FILE=$(ls "$CONFIG_ARTIFACT_DIR/build/libs/"config-server-*-SNAPSHOT.jar 2>/dev/null | head -n 1)
 
   if [ -z "$JAR_FILE" ]; then
@@ -110,11 +111,10 @@ process_config_files() {
   local properties_file="$config_dir/application.properties"
   local eurekaClassFile="$artifact_dir/src/main/java/com/codera/eureka/EurekaServerApplication.java"
   local LOCAL_HOST="localhost"
-  # 处理 application.docker.yml
   local docker_config="$subdir/application.docker.yml"
   mkdir -p "$config_dir"
   
-  # 定义变量替换规则
+  # role for change var
   replacements_docker=(
     "\$localhost-or-eureka-docker-server-name=$EUREKA_SERVER_NAME"
     "\$localhost-or-kafka-docker-server-name=$KAFKA_SERVER_NAME"
@@ -124,7 +124,7 @@ process_config_files() {
     "\$localhost-or-kafka-docker-server-name=$LOCAL_HOST"
   )
 
-  # 通用的变量替换函数
+  # change var
   replace_variables() {
     local file="$1"
     local vars=("${!2}") # 接收数组作为参数
@@ -150,7 +150,7 @@ process_config_files() {
     echo "Warning: $yaml_source does not exist. Skipping Docker configuration."
   fi
 
-  # 处理 config_dir/application.yml
+  # cpoy applicaiton.yml file to $config_dir/application.yml
   local local_config="$config_dir/application.yml"
   if [ -f "$yaml_source" ]; then
     echo "Creating local configuration: $local_config"
@@ -160,26 +160,26 @@ process_config_files() {
     echo "Warning: $yaml_source does not exist. Skipping local configuration."
   fi
 
-  # 删除 application.properties（如果存在）
+  # delete application.properties
   if [ -f "$properties_file" ]; then
     echo "Deleting $properties_file"
     rm -f "$properties_file"
   fi
 
-  # 检查并处理 EurekaServerApplication.java 文件
+  # add @EnableEurekaServer anotation for EurekaServerApplication.java  
   if [ -f "$eurekaClassFile" ]; then
     echo "Checking $eurekaClassFile for @EnableEurekaServer..."
     
     if ! grep -q "@EnableEurekaServer" "$eurekaClassFile"; then
       echo "@EnableEurekaServer not found. Adding annotation and import..."
       
-      # 添加 import
+      # added import
       if ! grep -q "import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;" "$eurekaClassFile"; then
         sed -i.bak '1 a\
 import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;' "$eurekaClassFile"
       fi
 
-      # 添加 @EnableEurekaServer
+      # add @EnableEurekaServer
       sed -i.bak '/@SpringBootApplication/a\
 @EnableEurekaServer\
 ' "$eurekaClassFile"
@@ -296,12 +296,14 @@ start_kafka_container () {
     exit 1
   fi
 
-  # Step 2: Wait for Kafka to be ready
   echo "Waiting for Kafka to start..."
-  sleep 10  # Replace with a check for readiness if needed
+  sleep 10  
   echo "$kafka_container_id"
 }
+
 # Main logic
+
+# build eureka
 find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
  if [[ "$subdir" == "$EUREKA_DIR" ]]; then
     process_directory "$subdir"
@@ -309,12 +311,15 @@ find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; 
 done
 
 sleep 5
+# start eureka
 start_local_eureka
-sleep 5
+sleep 10
 
+# start kafka 
 start_kafka_container
-sleep 20
+sleep 10
 
+# build config-server
 find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
  if [[ "$subdir" == "$CONFIG_DIR" ]]; then
     process_directory "$subdir"
@@ -322,9 +327,11 @@ find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; 
 done
 
 sleep 5
+# start config-server
 start_local_config
 sleep 5
 
+# build other services
 find "$JAVA_STACK_PATH" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
   [[ "$subdir" == "$EUREKA_DIR" || "$subdir" == "$CONFIG_DIR"  ]] && continue  # Skip Eureka directory
   process_directory "$subdir"
