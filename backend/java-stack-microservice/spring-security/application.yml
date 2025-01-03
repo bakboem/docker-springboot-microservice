@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: security-server
+  main:
+    allow-bean-definition-overriding: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8080/oauth2/default # 替换为你的 OAuth2 签发者地址
+          jwk-set-uri: http://auth-server:8080/oauth2/jwks  # 替换为你的 JWK 地址
+  cloud:
+    discovery:
+      enabled: true    # 如果使用 Eureka 服务发现
+        service-id: config-server # 注册于Eureka中的服务名
+    config:
+      uri: $config-service-name-in-docker:8888
+      name: security-server # 用于在config-server的repo中匹配文件名规则
+      profile: dev     # 环境
+      label: main 
+server:
+  port: 8084
+eureka:
+  client:
+    service-url:
+      # CHANGE
+      defaultZone: $eureka-service-name-in-docker:8761/eureka/ 
+    register-with-eureka: true
+    fetch-registry: true     
+  instance:
+      hostname: config-server
+      instance-id: ${spring.application.name}

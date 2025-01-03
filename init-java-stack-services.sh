@@ -26,6 +26,7 @@ build_local_eureka() {
   local BOOT_VERSION=$(yq '.BOOT_VERSION' "$config_file")
   local EUREKA_SERVER_NAME=$(yq '.EUREKA_SERVER_NAME' "$config_file")
   local KAFKA_SERVER_NAME=$(yq '.KAFKA_SERVER_NAME' "$config_file")
+  local CONFIG_SERVER_NAME=$(yq '.CONFIG_SERVER_NAME' "$config_file")
   local DEPENDENCIES=$(yq -r '.DEPENDENCIES[]' "$config_file" | paste -sd "," -)
 
   echo "Extracted dependencies: $DEPENDENCIES"
@@ -149,10 +150,11 @@ stop_local_eureka() {
   fi
 }
 process_config_files() {
-  local EUREKA_SERVER_NAME="$1"
-  local KAFKA_SERVER_NAME="$2"
-  local subdir="$3"
-  local ARTIFACT_ID="$4"
+  local CONFIG_SERVER_NAME="$1"
+  local EUREKA_SERVER_NAME="$2"
+  local KAFKA_SERVER_NAME="$3"
+  local subdir="$4"
+  local ARTIFACT_ID="$5"
   local artifact_dir="$subdir/$ARTIFACT_ID"
   local config_dir="$artifact_dir/src/main/resources"
   local yaml_source="$subdir/application.yml"
@@ -165,10 +167,12 @@ process_config_files() {
 replacements_docker=(
   "\$eureka-service-name-in-docker=http://$EUREKA_SERVER_NAME"
   "\$kafka-server-name-in-docker=$KAFKA_SERVER_NAME"
+  "\$config-server-name-in-docker=http://$CONFIG_SERVER_NAME"
  )
 replacements_local=(
   "\$eureka-service-name-in-docker=http://localhost" 
   "\$kafka-server-name-in-docker=localhost"
+  "\$config-service-name-in-docker=http://localhost" 
  )
 
 # 通用的变量替换函数
@@ -235,6 +239,7 @@ process_directory() {
   local BOOT_VERSION=$(yq '.BOOT_VERSION' "$config_file")
   local EUREKA_SERVER_NAME=$(yq '.EUREKA_SERVER_NAME' "$config_file")
   local KAFKA_SERVER_NAME=$(yq '.KAFKA_SERVER_NAME' "$config_file")
+  local CONFIG_SERVER_NAME=$(yq '.CONFIG_SERVER_NAME' "$config_file")
   local DEPENDENCIES=$(yq -r '.DEPENDENCIES[]' "$config_file" | paste -sd "," -)
 
   echo "Processing $ARTIFACT_ID in $subdir"
@@ -244,7 +249,7 @@ process_directory() {
   # Check if project directory exists
   if [ -d "$artifact_dir" ]; then
     echo "Directory '$ARTIFACT_ID' already exists in $subdir."
-    process_config_files "$EUREKA_SERVER_NAME" "$KAFKA_SERVER_NAME" "$subdir" "$ARTIFACT_ID"
+    process_config_files "$CONFIG_SERVER_NAME" "$EUREKA_SERVER_NAME" "$KAFKA_SERVER_NAME" "$subdir" "$ARTIFACT_ID"
 
     # Build the project
     cd "$artifact_dir" || { echo "Failed to change directory to $artifact_dir"; return; }
@@ -282,7 +287,7 @@ process_directory() {
   rm "$subdir/$ARTIFACT_ID.tgz"
 
   # Process configuration files
-  process_config_files "$EUREKA_SERVER_NAME" "$KAFKA_SERVER_NAME" "$subdir" "$ARTIFACT_ID"
+  process_config_files "$CONFIG_SERVER_NAME" "$EUREKA_SERVER_NAME" "$KAFKA_SERVER_NAME" "$subdir" "$ARTIFACT_ID"
 
   # Build the project
   cd "$artifact_dir" || { echo "Failed to change directory to $artifact_dir"; return; }
