@@ -35,3 +35,7 @@ management:
     web:
       exposure:
         include:  "*"
+logging:
+  level:
+    root: WARN
+    com.codera: INFO

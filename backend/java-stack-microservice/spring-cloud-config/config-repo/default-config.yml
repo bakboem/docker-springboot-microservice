@@ -1,4 +1,4 @@
 logging:
   level:
-    root: INFO
-    com.codera: DEBUG
+    root: WARN
+    com.codera: WARN

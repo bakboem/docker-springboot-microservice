@@ -44,7 +44,6 @@ build_local_eureka() {
       -d name="$NAME" \
       -d description="$DESCRIPTION" \
       -d dependencies=$DEPENDENCIES \
-  
       --output "$EUREKA_DIR/eureka-server.tgz"
 
     tar -xzf "$EUREKA_DIR/eureka-server.tgz" -C "$EUREKA_ARTIFACT_DIR"
