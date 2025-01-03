@@ -1,9 +1,9 @@
 # create project with spring boot cli
 GROUP_ID: com.codera
-ARTIFACT_ID: spring-security
-NAME: spring-security
+ARTIFACT_ID: auth-resource-server
+NAME: auth-resource-server
 DESCRIPTION: Eureka For Service Discovery System
-PACKAGE_NAME: com.codera.security
+PACKAGE_NAME: com.codera.authrecource
 BOOT_VERSION: 3.4.1
 SERVER_PORT: 8084
 EUREKA_SERVER_NAME: eureka
