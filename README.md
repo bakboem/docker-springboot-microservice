@@ -1,7 +1,38 @@
-# ECM Project Overview
+# Java Full-Stack Docker Microservices Project
+
+This project is designed for rapid deployment and initialization of a Java full-stack application using Docker-based microservices architecture. The backend services are modularized, and each module contains its own initialization configuration file to define dependencies and required settings.
+
+## Features
+- ***Docker-based Microservices Architecture***: All services are containerized for easy deployment and scaling.
+- ***Customizable Initialization***: Each backend module includes a configuration file for defining dependencies and other initialization details.
+- ***Automated Scripts***: Repetitive initialization and configuration tasks are automated with scripts for quick setup and consistent environments.
+
 
 ## Project Structure
+```
+java-stack-microservice/
+├── spring-eureka/
+│   ├── application.yml
+│   ├── build-config.yml
+│   ├── Dockerfile
+│   └── ...
+├── spring-cloud-config/
+│   ├── application.yml
+│   ├── build-config.yml
+│   ├── Dockerfile
+│   └── ...
+├── spring-could-gateway/
+│   ├── application.yml
+│   ├── build-config.yml
+│   ├── Dockerfile
+│   └── ...
+└── docker-compose-dev.yml
+└── docker-compose-prod.yml
+└── start.sh
+└── stop.sh
+└── ...
 
+```
 ### Backend
 
 1. **java-stack-microservice**: A set of microservices implemented in Java using Spring Boot.
