@@ -10,27 +10,35 @@ This project is designed for rapid deployment and initialization of a Java full-
 
 ## Project Structure
 ```
-java-stack-microservice/
-├── spring-eureka/
-│   ├── application.yml
-│   ├── build-config.yml
-│   ├── Dockerfile
-│   └── ...
-├── spring-cloud-config/
-│   ├── application.yml
-│   ├── build-config.yml
-│   ├── Dockerfile
-│   └── ...
-├── spring-could-gateway/
-│   ├── application.yml
-│   ├── build-config.yml
-│   ├── Dockerfile
-│   └── ...
-└── docker-compose-dev.yml
-└── docker-compose-prod.yml
+project-root/
+├── backend/
+│   ├── java-stack-microservice/
+│   │   ├── spring-eureka/
+│   │   │   ├── application.yml
+│   │   │   ├── build-config.yml
+│   │   │   ├── Dockerfile
+│   │   │   └── ...
+│   │   ├── spring-cloud-config/
+│   │   │   ├── application.yml
+│   │   │   ├── build-config.yml
+│   │   │   ├── Dockerfile
+│   │   │   └── ...
+│   │   ├── spring-cloud-gateway/
+│   │   │   ├── application.yml
+│   │   │   ├── build-config.yml
+│   │   │   ├── Dockerfile
+│   │   │   └── ...
+│   │   ├── docker-compose-dev.yml
+│   │   ├── docker-compose-prod.yml
+│   │   ├── start.sh
+│   │   ├── stop.sh
+│   │   └── ...
 └── start.sh
 └── stop.sh
+└── docker-compose-dev.yml
+└── docker-compose-prod.yml
 └── ...
+
 
 ```
 ### Backend
