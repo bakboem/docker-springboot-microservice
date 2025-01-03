@@ -3,6 +3,8 @@ spring:
     name: auth-resource-server
   main:
     allow-bean-definition-overriding: true
+  config:
+    import: "optional:configserver:"
   # security:
   #   oauth2:
   #     resourceserver:
@@ -12,21 +14,19 @@ spring:
   cloud:
     discovery:
       enabled: true    # 如果使用 Eureka 服务发现
-        service-id: config-server # 注册于Eureka中的服务名
+      service-id: ${spring.application.name} # 注册于Eureka中的服务名
     config:
-      uri: http://$config-service-name-in-docker:8888
       name: auth-resource-server # 用于在config-server的repo中匹配文件名规则
       profile: dev     # 环境
-      label: main 
 server:
   port: 8084
 eureka:
   client:
     service-url:
       # CHANGE
-      defaultZone: $eureka-service-name-in-docker:8761/eureka/ 
+      defaultZone: http://$localhost-or-eureka-docker-server-name:8761/eureka/ 
     register-with-eureka: true
     fetch-registry: true     
   instance:
-      hostname: auth-resource-server
+      hostname: ${spring.application.name}
       instance-id: ${spring.application.name}

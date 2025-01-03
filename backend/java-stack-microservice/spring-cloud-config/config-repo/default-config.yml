@@ -1,0 +1,25 @@
+# sprint:
+#   cloud:
+#     discovery:
+#       enabled: true  
+#     config:
+#       uri: http://config-server:8888
+#       name: my-config # 对应 Config Server 配置文件的前缀
+#       profile: dev     # 环境
+#       label: main 
+# logging:
+#   level:
+#     root: WARN
+#     com.codera: WARN
+# eureka:
+#   client:
+#     service-url:
+#       defaultZone: http://eureka:8761/eureka/
+#     enabled: true
+#     register-with-eureka: true
+#     fetch-registry: true
+# management:
+#   endpoints:
+#     web:
+#       exposure:
+#         include: "*" 

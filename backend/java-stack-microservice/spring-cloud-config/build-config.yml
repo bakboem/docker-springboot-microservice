@@ -8,7 +8,6 @@ BOOT_VERSION: 3.4.1
 SERVER_PORT: 8888
 EUREKA_SERVER_NAME: eureka
 KAFKA_SERVER_NAME: kafka
-CONFIG_SERVER_NAME: config
 DEPENDENCIES:
   - cloud-eureka
   - cloud-config-server

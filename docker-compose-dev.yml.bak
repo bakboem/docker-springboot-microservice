@@ -165,7 +165,28 @@ services:
     depends_on:
       eureka:
         condition: service_healthy
-
+  authresource:
+    build:
+      context: ./backend/java-stack-microservice/auth-resource-server
+    container_name: ecm-authresource
+    profiles:
+      - java-microservices
+    ports:
+      - "8084:8084"
+    env_file:
+      - ./backend/java-stack-microservice/auth-resource-server/.env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8084/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: always
+    networks:
+      - app-network
+    depends_on:
+      config:
+        condition: service_healthy
   kafka:
     build: 
       context: ./backend/nocode-standalone-instance/kafka

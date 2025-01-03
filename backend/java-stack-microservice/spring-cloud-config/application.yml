@@ -6,10 +6,13 @@ spring:
   cloud:
     bus:
       enable: true
+    discovery:
+      enabled: true    # 如果使用 Eureka 服务发现
+      service-id: ${spring.application.name}
     stream:
       kafka:
         binder:
-          brokers: $kafka-server-name-in-docker:9092
+          brokers: $localhost-or-kafka-docker-server-name:9092
       bindings:
         input:
           destination: springCloudBus
@@ -23,12 +26,12 @@ eureka:
   client:
     service-url:
       # CHANGE
-      defaultZone: http://$eureka-service-name-in-docker:8761/eureka/ 
+      defaultZone: http://$localhost-or-eureka-docker-server-name:8761/eureka/ 
     enabled: true
     register-with-eureka: true
     fetch-registry: false     
   instance:
-      hostname: config-server
+      hostname: ${spring.application.name}
       instance-id: ${spring.application.name}
 management:
   endpoints:

@@ -6,6 +6,9 @@ spring:
   cloud:
     bus:
       enable: true
+    discovery:
+      enabled: true    # 如果使用 Eureka 服务发现
+      service-id: ${spring.application.name}
     stream:
       kafka:
         binder:
@@ -28,7 +31,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: false     
   instance:
-      hostname: config-server
+      hostname: ${spring.application.name}
       instance-id: ${spring.application.name}
 management:
   endpoints:
